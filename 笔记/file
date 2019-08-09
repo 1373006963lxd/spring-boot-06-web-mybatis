@@ -1,0 +1,120 @@
+Department------用的是注解的形式实现
+1.接口
+@Mapper
+public interface DepartmentMapper {
+
+    @Select("select * from department where id=#{id}")
+    public Department getDeptById(Integer id);
+
+
+    @Delete("delete from department where id=#{id}")
+    public int deleteDeptById(Integer id);
+
+    /*自增id*/
+    @Options(useGeneratedKeys = true,keyProperty = "id")
+    @Insert("insert into department(department_name)values(#{departmentName})")
+    public int insertDept(Department department);
+
+
+    @Update("update department set department_name=#{departmentName} where id=#{id}")
+    public int updateDept(Department department);
+}
+
+2.controller
+@RestController
+public class DeptController {
+
+    @Autowired
+    DepartmentMapper departmentMapper;
+
+    @GetMapping("/dept/{id}")
+    public Department getDeptById(@PathVariable("id") Integer id){
+        Department dept = departmentMapper.getDeptById(id);
+        return dept;
+    }
+
+
+    @GetMapping("/dept")
+    public Department insertDept(Department department){
+        departmentMapper.insertDept(department);
+        return department;
+    }
+
+}
+
+
+解析驼峰式
+@Configuration
+public class MybatisConfig {
+
+    @Bean
+    public ConfigurationCustomizer configurationCustomizer(){
+       return new ConfigurationCustomizer(){
+            @Override
+            public void customize(org.apache.ibatis.session.Configuration configuration) {
+//                设置识别驼峰式
+                configuration.setMapUnderscoreToCamelCase(true);
+            }
+        };
+    }
+}
+
+
+
+Employee-------用的是配置映射文件的形式
+1.
+@Mapper
+public interface EmployeeMapper {
+
+    public Employee getEmpById(Integer id);
+
+    public void insertEmp(Employee employee);
+}
+
+2.全局配置文件github--找mybatis3--点连接 http://www.mybatis.org/mybatis-3/getting-started.html -- Getting started
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!--这里就是配置驼峰式-->
+    <settings>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+</configuration>
+
+3，接口映射文件EmployeeMapper.xml
+这里面需要注意的东西很多需要注意
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.atguigu.springboot.mapper.EmployeeMapper">
+
+    <select id="getEmpById" resultType="com.atguigu.springboot.bean.Employee">
+        select * from employee where id=#{id}
+    </select>
+    <insert id="insertEmp">
+        insert into employee(lastName,email,gender,d_id) values (#{lastName},#{email},#{gender},#{d_id})
+    </insert>
+</mapper>
+
+4.application.yml ---里面对映射文件进行配置
+mybatis:
+#    指明全局文件
+  config-location: classpath:mybatis/mybatis-config.xml
+#    指明映射文件 -----一定注意这里是  locations
+  mapper-locations: classpath:mybatis/mapper/*.xml
+
+5.controller
+@RestController
+public class EmpController {
+    @Autowired
+    EmployeeMapper employeeMapper;
+
+
+    @GetMapping("/emp/{id}")
+    public Employee getEmp(@PathVariable("id") Integer id){
+        return employeeMapper.getEmpById(id);
+    }
+}
